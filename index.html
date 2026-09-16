@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>plane-moving-targets-vicsek — Vicsek moving targets simulation</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<nav class="tabs">
+  <button data-view="about" class="active">about</button>
+  <button data-view="sim">live simulation</button>
+  <button data-view="matlab">matlab version</button>
+</nav>
+
+<main>
+
+  <!-- ================= ABOUT ================= -->
+  <section id="view-about" class="view active">
+    <h1 class="page-title">plane-moving-targets (aligned, Vicsek)</h1>
+    <p class="lede">A Vicsek-model agent simulation with moving targets, ported from MATLAB to a dependency-light browser build.</p>
+
+    <div class="badge-row">
+      <span class="badge">Vicsek model</span>
+      <span class="badge">metric-radius alignment + noise</span>
+      <span class="badge">aligned straight-line + asymmetric sinusoidal target motion</span>
+      <span class="badge">MATLAB + JS ports</span>
+      <span class="badge">no build step</span>
+    </div>
+
+    <div class="prose">
+      <p>The target scenario is unchanged from the earlier VTP version of this project: you choose a number of <strong>straight-line targets</strong> (0-5), each on its own fixed-height horizontal lane, plus one target that's always added on top and oscillates <strong>asymmetrically</strong> in y — descending at angular frequency <strong>q</strong> and rising back up at <strong>n&times;q</strong> (n times faster). Every target shares a single horizontal speed and a single shared x-coordinate, so they're aligned (exactly the same x) at every instant.</p>
+      <p>What's different here is the <strong>agent dynamics</strong>. Instead of the VTP model (Voronoi/Delaunay-neighbor repulsion + alignment + homing, with a Voronoi-cell-based speed governor), agents follow the classical <strong>Vicsek model</strong>:</p>
+      <ul>
+        <li>Neighbors are <strong>metric, not topological</strong>: every agent within a fixed radius <strong>R</strong> — no Delaunay triangulation, no Voronoi cells anywhere.</li>
+        <li>Each agent's new heading is the vector-average heading of its neighbors (including itself) — the textbook Vicsek consensus rule.</li>
+        <li>A uniform random angular kick of size <strong>&eta;</strong> is added every step — the classic Vicsek noise parameter that drives the order/disorder transition.</li>
+        <li>Every agent moves at the <strong>same constant speed</strong> every step. There's no crowding-based speed governor, because there are no Voronoi cells to measure.</li>
+      </ul>
+      <p>Since bare Vicsek has no notion of a target at all, homing toward the nearest target is kept as an extension: each agent's heading is a blend of the neighbor-consensus direction and the direction to its nearest target, weighted by <strong>&nu;</strong> — the same role &nu; always played, just blending two directions instead of three forces.</p>
+
+      <h2>Two implementations, one model</h2>
+      <ul>
+        <li><code>index.html</code> (this page, <em>live simulation</em> tab) — a plain JavaScript/Canvas port that runs directly in the browser, no install, no external libraries at all.</li>
+        <li><code>matlab/dynamics.m</code> — the original MATLAB implementation, browsable under the <em>matlab version</em> tab.</li>
+      </ul>
+
+    </div>
+  </section>
+
+  <!-- ================= LIVE SIMULATION ================= -->
+  <section id="view-sim" class="view">
+    <h1 class="page-title">Live simulation</h1>
+    <p class="lede">Runs entirely in your browser — plain Canvas, no server, no build step, no external libraries.</p>
+
+    <div class="sim-frame">
+      <div class="sim-topbar">
+        <span><b>Vicsek — Aligned Moving Targets</b> &nbsp;|&nbsp; ported from MATLAB (dynamics.m)</span>
+        <label class="targets-picker">straight targets:
+          <select id="numTargets">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+      </div>
+      <div class="sim-status" id="statusLine">t = 0 | 3 aligned targets (2 straight + 1 sine)</div>
+      <div class="sim-canvas-wrap"><canvas id="simCanvas"></canvas></div>
+
+      <div class="controls">
+        <div class="global-row">
+          <span class="label">Cells</span>
+          <div class="ctrl">Spd (v0):
+            <input type="range" id="cellSpd" min="0" max="3" step="0.01" value="1" />
+            <span class="readout" id="cellSpdVal">1.00</span>
+          </div>
+          <div class="buttons">
+            <button id="btnPause">Pause</button>
+            <button id="btnReset" class="primary">Reset Targets</button>
+          </div>
+        </div>
+        <div class="global-row">
+          <span class="label">Dynamics</span>
+          <div class="ctrl">&nu;:
+            <input type="range" id="nuSlider" min="0" max="8" step="0.05" value="2.5" />
+            <span class="readout" id="nuVal">2.50</span>
+          </div>
+          <div class="ctrl">R (radius):
+            <input type="range" id="rSlider" min="0.5" max="20" step="0.1" value="3" />
+            <span class="readout" id="rVal">3.00</span>
+          </div>
+          <div class="ctrl">&eta; (noise):
+            <input type="range" id="etaSlider" min="0" max="6.28" step="0.02" value="0.3" />
+            <span class="readout" id="etaVal">0.30</span>
+          </div>
+        </div>
+        <div class="global-row">
+          <span class="label">Motion</span>
+          <div class="ctrl">Horiz. speed (vx, shared):
+            <input type="range" id="vxSlider" min="0" max="1" step="0.005" value="0.15" />
+            <span class="readout" id="vxVal">0.150</span>
+          </div>
+        </div>
+        <div class="target-rows" id="targetRows"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MATLAB VERSION ================= -->
+  <section id="view-matlab" class="view">
+    <h1 class="page-title">MATLAB version</h1>
+    <p class="lede">The original implementation, in <code>matlab/</code>.</p>
+
+    <div class="prose">
+      <p>Requires base MATLAB only — no toolboxes at all (the pairwise-distance computation is plain broadcasting, not <code>pdist</code>/<code>squareform</code>, so it doesn't even need the Statistics Toolbox). Run:</p>
+      <div class="formula">cd matlab<br />matlab -r dynamics</div>
+      <p>...or open <code>dynamics.m</code> in the MATLAB editor and run it. You'll be prompted for the number of straight-line targets (0–5); one asymmetrically-oscillating target is always added on top. An interactive figure then opens with a control panel (agents' constant speed v0, &nu;, R, &eta;, shared horizontal speed, each straight target's height, and the oscillating target's height/amplitude/q/n — Apply / Pause / Reset Targets).</p>
+      <p>This folder only ships three MATLAB files: <code>dynamics.m</code>, <code>Target.m</code> (generic target geometry, not Voronoi-specific), and <code>nearestOnSegment.m</code> (a small helper <code>Target.m</code> depends on). Every VTP-only file — <code>neighborhoods.m</code>, <code>alignTo.m</code>, <code>transition.m</code>, <code>voronoiProjectToBoundary.m</code>, and the Voronoi-diagnostic utilities — is gone, since none of them are used or meaningful once the dynamics are Vicsek.</p>
+    </div>
+
+    <div class="file-layout">
+      <div class="file-list" id="fileList"></div>
+      <div>
+        <div class="code-view" id="codeView">Select a file…</div>
+        <p class="file-hint" id="fileHint"></p>
+      </div>
+    </div>
+  </section>
+
+
+</main>
+
+<footer>plane-moving-targets (aligned, Vicsek) — MATLAB → browser port · view source on <a href="https://github.com/" target="_blank">GitHub</a></footer>
+
+<script src="assets/sim.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
